@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QR Scanner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
+
+  <div id="reader" class="w-full max-w-sm"></div>
+
+  <div id="result" class="text-center mt-4 text-lg font-semibold text-blue-600"></div>
+
+  <button id="go-button" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600 hidden">
+    Go to Item Page
+  </button>
+
+  <script>
+    const resultEl = document.getElementById("result");
+    const goBtn = document.getElementById("go-button");
+
+    let scanned = false;
+
+    function onScanSuccess(decodedText) {
+      if (scanned) return;
+      scanned = true;
+
+      resultEl.textContent = "Scanned: " + decodedText;
+      goBtn.classList.remove("hidden");
+
+      goBtn.onclick = () => {
+        window.location.href = `/item?itemId=${encodeURIComponent(decodedText)}`;
+      };
+    }
+
+    function onScanFailure(error) {
+      // silent fail
+    }
+
+    const html5QrCode = new Html5Qrcode("reader");
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        html5QrCode.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+          },
+          onScanSuccess,
+          onScanFailure
+        );
+      }
+    }).catch(err => {
+      resultEl.textContent = "Camera error: " + err;
+    });
+  </script>
+</body>
+</html>
+

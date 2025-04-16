@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Item Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white flex flex-col items-center justify-center min-h-screen p-4">
+  <div class="w-full max-w-md text-center">
+    <div class="text-xl font-semibold text-gray-800 mb-2">
+      Item ID: <span id="itemId" class="text-blue-600"></span>
+    </div>
+
+    <div id="itemDetails" class="text-sm text-gray-600 mb-4"></div>
+
+    <button id="actionButton" class="px-4 py-2 rounded-lg text-white font-medium hidden">
+      <!-- Text will be set dynamically -->
+    </button>
+    <div id="quantity"></div>
+  </div>
+
+  <script>
+ 
+  	//to store config
+		var itemStatus=null
+		var itemTypeGlobal=null
+		var kode_item=null
+		var kode_asset=null
+		var isResponsible=null
+		var responObject=null
+		var arrayStockRespon=null
+		var arrayAssetRespon=null
+		//static config
+		
+		//changeable
+		var kode_peminjam='USR356701310271' 
+		//changeable
+    const token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjoidnhjeHB0U0J1UVY0NjBfZm5tNGtpVk11ZmJJZnUwdUxlRTFkcy1RRW1iRy1VSUlHY2lZMmdXZWN0cE9FR05MUV9VN3o1MTVIWXVNaWpfYXZQbkxRQzBfQlJiMnlsQ08wQW02ZVNBeWpXQUFENTU3UmZqa19URC1xY2x3OGVNVWl3TDhSVUpwU1lfQTFZZXNVX3hOVVVBPT0iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzQ0NzgzODY5LCJleHAiOjE3NDQ4NzAyNjl9.HdgFGHKkhXoHMZVyFB1peNhFD_tE9wrN5NL0NNw0CIc"
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const itemId = urlParams.get('itemId');
+    const userId = ""
+      document.getElementById("itemId").textContent = itemId || "Not Found";
+   if(localStorage.getItem("cekincart")==null){
+   	localStorage.setItem("cekincart","[]")
+   }
+   var arraycekin=JSON.parse(localStorage.getItem("cekincart"));
+   function getQuantity() {
+  const qty = document.getElementById("qtyInput").value;
+  console.log("Quantity:", qty);
+  return qty;
+}
+   const checkIsQuantityEnough= (kode_item,targetQuantity,arrays)=>{
+   					let array=[...arrays];
+   					let arrayEnough=[]
+   					//kemungkinan quantity yg dibalikin lebih besar dri msg msg respon card
+   					console.log(array,"array")
+   					for (const obj of array){
+   						obj.status=false
+   						for (const stock of obj.asset_stock){
+   							if(stock.quantity<=targetQuantity && stock.kode_item==kode_item){
+   								
+   								obj.status=true
+   								
+   								targetQuantity-=stock.quantity
+   								
+   								arrayEnough.push({
+   								responsibility_id:obj.peminjam.responsibility_id,
+   								notes:"babibu",
+   								asset:[],
+   								asset_stock:[{
+   								quantity:stock.quantity,
+   								kode_item:stock.kode_item}]
+   								})
+   							}
+   						}
+   					}
+   					
+   					for (const obj of array){
+   						for (const stock of obj.asset_stock){
+   							if(stock.quantity>=targetQuantity && obj.status==false && stock.kode_item==kode_item){
+   								arrayEnough.push({
+   								responsibility_id:obj.peminjam.responsibility_id,
+   								notes:"babibu",
+   								asset:[],
+   								asset_stock:[{
+   								quantity:targetQuantity,
+   								kode_item:stock.kode_item}]
+   								})
+   							}
+   						}
+   					}
+				  return arrayEnough; 
+   }
+    const checkItemDetail= async (itemId) =>{
+    	try {
+						const response = await fetch('http://localhost:7134/transaction/tipebarang/keyword?identity='+itemId);
+						if (!response.ok) {
+							throw new Error(`HTTP error! status: ${response.status}`);
+						}
+
+						const tempItemType = await response.json(); 
+						const itemType=tempItemType.data;
+						console.log("Fetched data:", tempItemType);
+						itemTypeGlobal=itemType
+						if (itemType=="asset"){
+										const detail=await fetch("http://localhost:7134/information/detail_asset?kode_asset="+itemId,{
+											method: 'GET', // or 'POST', 'PUT', etc. depending on your API
+											headers: {
+												'Content-Type': 'application/json',
+												'Authorization': `Bearer ${token}`
+											}
+										});
+										let result= await detail.json() 
+										console.log(result)
+										kode_asset=result.data.kode_asset
+										return result
+										}
+						else if(itemType=="asset_stock"){
+										const detail=await fetch("http://localhost:7134/information/detail_asset_stock/"+itemId,{
+											method: 'GET', // or 'POST', 'PUT', etc. depending on your API
+											headers: {
+												'Content-Type': 'application/json',
+												'Authorization': `Bearer ${token}`
+											}
+										});
+										let result= await detail.json() 
+										console.log(result)
+										kode_item=result.data.kode_item
+										return result
+										}
+						else{
+										return null;}
+					} catch (error) {
+						console.error('Fetch error:', error);
+						return null;
+					}
+    
+    }
+    const showDecide=async () => {
+      const data = await checkItemDetail(itemId);
+      console.log(data,data.data.nama_item,"datas")
+      const detailsEl = document.getElementById("itemDetails");
+      const button = document.getElementById("actionButton");
+
+      if (!data) {
+        detailsEl.textContent = "Item not found or error occurred.";
+        return;
+      }
+
+      // Show basic details (customize as needed)
+     
+if(itemTypeGlobal=="asset_stock"){
+										const detail=await fetch("http://localhost:7134/transaction/asset_stock_responsibility",{
+											method: 'POST', // or 'POST', 'PUT', etc. depending on your API
+											headers: {
+												'Content-Type': 'application/json',
+												'Authorization': `Bearer ${token}`
+											},
+											body: JSON.stringify({
+											"kode_item": kode_item,
+    									"kode_peminjam":kode_peminjam
+											})
+										});
+										let result= await detail.json() 
+										console.log(result,"cek stock")
+										if(result!=="false"){
+										isResponsible=true
+										arrayStockRespon=result.data
+										
+										document.getElementById("quantity").innerHTML = `
+  <input type="number" id="qtyInput" min="1" value="1" />
+`;
+										
+										}else if(data.data.status_available === "AVAILABLE"){
+										
+										button.classList.remove("hidden");
+										button.classList.add("bg-green-600", "hover:bg-green-700");
+										button.textContent = "Checkout";
+										button.disabled = false;
+										itemStatus=1;
+										console.log("aw")
+										}
+										
+										
+    } else if (data.data.status_available === "AVAILABLE" ) {
+    console.log("jalan")
+        button.classList.remove("hidden");
+        button.classList.add("bg-green-600", "hover:bg-green-700");
+        button.textContent = "Checkout";
+        button.disabled = false;
+        itemStatus=1;
+      } else {
+      	if (itemTypeGlobal=="asset"){
+										const detail=await fetch("http://localhost:7134/transaction/asset_responsibility",{
+											method: 'POST', // or 'POST', 'PUT', etc. depending on your API
+											headers: {
+												'Content-Type': 'application/json',
+												'Authorization': `Bearer ${token}`
+											},
+											body: JSON.stringify({
+											 "kode_asset": kode_asset,
+    									 "kode_peminjam":kode_peminjam
+											})
+										});
+										let result= await detail.json() 
+										console.log(result,"cek aset")
+										if(result!=="false"){
+										isResponsible=true
+										arrayAssetRespon= result;
+										}
+										
+										}
+			
+										
+				
+      }
+      if(isResponsible==true){
+		      button.classList.remove("hidden");
+		      button.classList.add("bg-gray-400", "hover:bg-gray-500");
+		      button.textContent = "Check in Cart ";
+		      button.disabled = false;
+		      itemStatus=2;
+       }
+       detailsEl.innerHTML = `
+        <p><strong>${data.data.nama_item}</strong> </p>
+        <p class="text-xs">Status: <span class="uppercase">${data.data.status_available}</span></p>
+      `;
+    }
+    showDecide();
+    document.getElementById("actionButton").addEventListener("click", () => {
+    if (itemStatus==0) {
+      console.log("Check which responsibility", itemId);
+    }
+    else if (itemStatus==1) {
+      console.log("Checkout clicked for itemId:", itemId);
+    }else if(itemStatus==2 && itemTypeGlobal=="asset_stock") {
+      console.log("respon:", itemId);
+      let qty=getQuantity()
+      let temp=checkIsQuantityEnough(itemId,qty,arrayStockRespon)
+      
+      arraycekin=arraycekin.concat(temp)
+      console.log(temp,"temp",arraycekin)
+      localStorage.setItem("cekincart",JSON.stringify(arraycekin))
+      window.location.href = "/bulkcheckin"
+    }else if(itemStatus==2 && itemTypeGlobal=="asset") {
+      console.log("respon:", itemId);
+      arraycekin.push({
+   								responsibility_id:arrayAssetRespon.data[0].peminjam.responsibility_id,
+   								notes:"babibu",
+   								asset_stock:[],
+   								asset:[{
+   								nama_asset:"dumping",
+   								kode_asset:itemId}]
+   								})
+   			localStorage.setItem("cekincart",JSON.stringify(arraycekin))
+   			window.location.href = "/bulkcheckin"
+      
+    }
+  });
+  </script>
+</body>
+</html>
+
+
+

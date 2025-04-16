@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Button & Table Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-4 space-y-6">
+
+  <div class="space-x-4">
+    <button id="noBtn" class="bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-4 rounded">
+      No
+    </button>
+    <button id="yesBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
+      Yes
+    </button>
+  </div>
+
+  <div class="w-full max-w-5xl overflow-x-auto">
+    <table class="min-w-full bg-white border rounded shadow">
+      <thead class="bg-gray-200 text-gray-700">
+        <tr>
+          <th class="px-4 py-2 text-left border">Responsibility ID</th>
+          <th class="px-4 py-2 text-left border">Notes</th>
+          <th class="px-4 py-2 text-left border">Assets</th>
+          <th class="px-4 py-2 text-left border">Asset Stocks</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+  //changeable
+  const token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjoidnhjeHB0U0J1UVY0NjBfZm5tNGtpVk11ZmJJZnUwdUxlRTFkcy1RRW1iRy1VSUlHY2lZMmdXZWN0cE9FR05MUV9VN3o1MTVIWXVNaWpfYXZQbkxRQzBfQlJiMnlsQ08wQW02ZVNBeWpXQUFENTU3UmZqa19URC1xY2x3OGVNVWl3TDhSVUpwU1lfQTFZZXNVX3hOVVVBPT0iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzQ0NzgzODY5LCJleHAiOjE3NDQ4NzAyNjl9.HdgFGHKkhXoHMZVyFB1peNhFD_tE9wrN5NL0NNw0CIc"
+    
+  async function sendBulk(){
+  console.log(localStorage.getItem("cekincart"))
+  await fetch("http://localhost:7134/transaction/bulkcekin",{
+											method: 'POST', // or 'POST', 'PUT', etc. depending on your API
+											headers: {
+												'Content-Type': 'application/json',
+												'Authorization': `Bearer ${token}`
+											},
+											body:localStorage.getItem("cekincart")
+										}).then(data=>{localStorage.setItem("cekincart","[]");window.location.href = "/";})
+									.catch(err=>{console.log(err)});
+										
+					//window.location.href = "/";
+  }
+    document.getElementById("noBtn").addEventListener("click", () => {
+      window.location.href = "/";
+    });
+
+    document.getElementById("yesBtn").addEventListener("click", () => {
+      console.log("yes");
+      sendBulk();
+      
+    });
+
+    const arraylist = JSON.parse(localStorage.getItem("cekincart"))
+
+    const tableBody = document.getElementById("tableBody");
+
+    arraylist.forEach(entry => {
+      const row = document.createElement("tr");
+
+      row.innerHTML = `
+        <td class="px-4 py-2 border">${entry.responsibility_id}</td>
+        <td class="px-4 py-2 border">${entry.notes}</td>
+        <td class="px-4 py-2 border">
+          ${entry.asset.map(a => `• ${a.nama_asset} (${a.kode_asset})`).join("<br>") || '-'}
+        </td>
+        <td class="px-4 py-2 border">
+          ${entry.asset_stock.map(s => `• ${s.kode_item} `).join("<br>") || '-'}
+        </td>
+        <td class="px-4 py-2 border">
+          ${entry.asset_stock.map(s => `•  ${s.quantity}`).join("<br>") || '-'}
+        </td>
+      `;
+      tableBody.appendChild(row);
+    });
+  </script>
+
+</body>
+</html>
+
