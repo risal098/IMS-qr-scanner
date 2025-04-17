@@ -78,6 +78,7 @@
    					}
    					
    					for (const obj of array){
+   						if(targetQuantity==0){break}
    						for (const stock of obj.asset_stock){
    							if(stock.quantity>=targetQuantity && obj.status==false && stock.kode_item==kode_item){
    								arrayEnough.push({
@@ -88,6 +89,8 @@
    								quantity:targetQuantity,
    								kode_item:stock.kode_item}]
    								})
+   								targetQuantity=0
+   								break
    							}
    						}
    					}
